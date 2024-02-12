@@ -1,0 +1,38 @@
+# This GitHub Actions workflow runs JMH benchmarks when a new comment is created on a pull request
+name: Run JMH Benchmarks for Pull Request
+
+on:
+  issue_comment: # This workflow triggers when a comment is created
+    types: [created]
+
+# Only allow one instance of JMH benchmarking to be running at any given time
+concurrency: all
+
+jobs:
+  benchmarking:
+    # Only run this job if a comment on a pull request contains '/benchmark' and is a PR on the uber/NullAway repository
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/benchmark')
+    runs-on: ubuntu-latest 
+    permissions: write-all 
+
+    steps:
+    - name: Add reaction
+      uses: peter-evans/create-or-update-comment@v3
+      with:
+        comment-id: ${{ github.event.comment.id }}
+        reactions: '+1'
+        
+    - name: Checkout repository 
+      uses: actions/checkout@v3
+
+    - name: Set branch name 
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+      run: |
+        chmod +x ./.github/workflows/get_repo_details.sh 
+        ./.github/workflows/get_repo_details.sh "${{ secrets.GITHUB_TOKEN }}" "${{ github.event.issue.number }}" "${{ github.repository }}"
+
+    - name: debug
+      run: |
+
+        ls -asl /tmp/
